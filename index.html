@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ARL Coffee Tracker</title>
+    <title>Coffee Tracker</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -12,20 +12,21 @@
             flex-direction: column;
             justify-content: center;
             height: 100vh;
+            align-items: center;
         }
         h1, h2 {
             text-align: center;
             color: #333;
         }
-        div {
+        div, select {
             margin-bottom: 20px;
             text-align: center;
         }
-        input, button {
-            margin: 50px;
+        input, button, select {
+            margin: 5px;
             padding: 10px;
             width: 80%;
-            max-width: 200px;
+            max-width: 300px;
             font-size: 16px;
         }
         button {
@@ -37,72 +38,131 @@
         button:hover {
             background-color: #383306;
         }
+        .create-user-button {
+            background-color: transparent;
+            color: #333;
+            border: 2px solid #383306;
+            padding: 5px;
+            font-size: 14px;
+            width: 50%; /* Smaller width */
+        }
+        .create-user-button:hover {
+            background-color: #f0f0f0;
+        }
         .hidden {
             display: none;
         }
         @media (max-width: 600px) {
-            input, button {
+            input, button, select {
                 width: 90%;
             }
         }
     </style>
 </head>
 <body>
-    <div>
-        <span style="font-size: 100px;">&#9749</span>
-        <h1>ARL JURA Productivity Logger</h1>
-        
-        <button onclick="navigate('logCoffee')">Log Coffee &#128221</button>
-        <button onclick="navigate('showTotal')">Show Total &#128176</button>
+    <span style="font-size: 100px;">&#9749</span>
+    <h1>ARL JURA Productivity Logger</h1>
+    
+    <!-- Initial User Selection -->
+    <div id="initialUserSelection">
+        <!-- <label for="userSelection">Select User:</label> -->
+        <select id="userSelection" onchange="showUserOptions()">
+            <option value="">--Select a User--</option>
+        </select>
+        <button class="create-user-button" onclick="navigate('createUserPage')">Create New User</button>
     </div>
 
-    <!-- Log Coffee Form (Initially Hidden) -->
-    <div id="logCoffeeForm" class="hidden">
-        <h2>Log Coffee</h2>
-        <label>User ID: <input type="text" id="userID"></label><br>
-        <label>Date: <input type="date" id="date"></label><br>
-        <label>Coffee Count: <input type="number" id="coffeeCount"></label><br>
-        <button onclick="logCoffee()">Submit</button>
+    <!-- Create User Page (Initially Hidden) -->
+    <div id="createUserPage" class="hidden">
+        <input type="text" id="newUsername" placeholder="New User Name">
+        <button onclick="createUser()">Submit</button>
+        <button onclick="navigate('initialUserSelection')">Back</button>
     </div>
 
-    <!-- Show Total Form (Initially Hidden) -->
-    <div id="showTotalForm" class="hidden">
-        <h2>Show Total</h2>
-        <label>User ID: <input type="text" id="totalUserID"></label><br>
-        <button onclick="showTotal()">Check Total</button><br>
-        <div id="totalDisplay"></div>
+    <!-- User Actions (Initially Hidden) -->
+    <div id="userActions" class="hidden">
+        <button onclick="addCoffee()">Add a Cup &#9749</button>
+        <button onclick="checkTotal()">Check Total &#128176</button>
     </div>
+
+    <!-- Display Total -->
+    <div id="totalDisplay"></div>
 
     <script>
-        // Function to navigate between "pages"
-        function navigate(page) {
-            document.getElementById('logCoffeeForm').classList.add('hidden');
-            document.getElementById('showTotalForm').classList.add('hidden');
+        document.addEventListener('DOMContentLoaded', fetchUsers);
 
-            if (page === 'logCoffee') {
-                document.getElementById('logCoffeeForm').classList.remove('hidden');
-            } else if (page === 'showTotal') {
-                document.getElementById('showTotalForm').classList.remove('hidden');
-            }
+        // Function to navigate between pages
+        function navigate(page) {
+            // Hide all pages
+            document.getElementById('initialUserSelection').classList.add('hidden');
+            document.getElementById('createUserPage').classList.add('hidden');
+            document.getElementById('userActions').classList.add('hidden');
+
+            // Show the selected page
+            document.getElementById(page).classList.remove('hidden');
         }
 
-        // Function to log coffee
-        function logCoffee() {
-            const userID = document.getElementById('userID').value;
-            const date = document.getElementById('date').value;
-            const coffeeCount = document.getElementById('coffeeCount').value;
+        // Fetch users from the Google Apps Script
+        function fetchUsers() {
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers'; // Replace with your Apps Script Web App URL
+            fetch(url)
+                .then(response => response.json())
+                .then(users => {
+                    const userSelect = document.getElementById('userSelection');
+                    users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.userID;
+                        option.textContent = user.username;
+                        userSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Create a new user
+        function createUser() {
+            const username = document.getElementById('newUsername').value;
             const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
 
-            fetch(`${url}?action=logCoffee&userID=${userID}&date=${date}&coffeeCount=${coffeeCount}`, {
+            fetch(`${url}?action=createUser&username=${username}`, {
                 method: 'POST'
             }).then(response => response.text())
-              .then(data => alert('Coffee logged successfully!'))
+              .then(userID => {
+                  // After creating user, navigate to user options
+                  navigate('initialUserSelection');
+                  fetchUsers();  // Refresh the user list
+              })
               .catch(error => console.error('Error:', error));
         }
 
-        // Function to show total
-        function showTotal() {
-            const userID = document.getElementById('totalUserID').value;
+        // Show user options after selection
+        function showUserOptions() {
+            const user = document.getElementById('userSelection').value;
+            if (user) {
+                document.getElementById('userActions').classList.remove('hidden');
+            } else {
+                document.getElementById('userActions').classList.add('hidden');
+            }
+        }
+
+        // Function to add coffee
+        function addCoffee() {
+            const userID = document.getElementById('userSelection').value;
+            const date = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
+            const time = new Date().toLocaleTimeString();  // HH:MM:SS based on user's locale
+            const coffeeCount = 1;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
+
+            fetch(`${url}?action=logCoffee&userID=${userID}&date=${date} ${time}&coffeeCount=${coffeeCount}`, {
+                method: 'POST'
+            }).then(response => response.text())
+              .then(data => alert('1 cup of coffee added!'))
+              .catch(error => console.error('Error:', error));
+        }
+
+        // Function to check total
+        function checkTotal() {
+            const userID = document.getElementById('userSelection').value;
             const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
 
             fetch(`${url}?action=getTotalCoffee&userID=${userID}`, {
@@ -122,4 +182,3 @@
     </script>
 </body>
 </html>
-
