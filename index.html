@@ -6,6 +6,130 @@
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        div {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input, button {
+            margin: 5px;
+            padding: 10px;
+            width: 80%;
+            max-width: 300px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #383306;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #383306;
+        }
+        .hidden {
+            display: none;
+        }
+        @media (max-width: 600px) {
+            input, button {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Coffee Tracker</h1>
+        <button onclick="navigate('logCoffee')">Log Coffee</button>
+        <button onclick="navigate('showTotal')">Show Total</button>
+    </div>
+
+    <!-- Log Coffee Form (Initially Hidden) -->
+    <div id="logCoffeeForm" class="hidden">
+        <h2>Log Coffee</h2>
+        <label>User ID: <input type="text" id="userID"></label><br>
+        <label>Date: <input type="date" id="date"></label><br>
+        <label>Coffee Count: <input type="number" id="coffeeCount"></label><br>
+        <button onclick="logCoffee()">Submit</button>
+    </div>
+
+    <!-- Show Total Form (Initially Hidden) -->
+    <div id="showTotalForm" class="hidden">
+        <h2>Show Total</h2>
+        <label>User ID: <input type="text" id="totalUserID"></label><br>
+        <button onclick="showTotal()">Check Total</button><br>
+        <div id="totalDisplay"></div>
+    </div>
+
+    <script>
+        // Function to navigate between "pages"
+        function navigate(page) {
+            document.getElementById('logCoffeeForm').classList.add('hidden');
+            document.getElementById('showTotalForm').classList.add('hidden');
+
+            if (page === 'logCoffee') {
+                document.getElementById('logCoffeeForm').classList.remove('hidden');
+            } else if (page === 'showTotal') {
+                document.getElementById('showTotalForm').classList.remove('hidden');
+            }
+        }
+
+        // Function to log coffee
+        function logCoffee() {
+            const userID = document.getElementById('userID').value;
+            const date = document.getElementById('date').value;
+            const coffeeCount = document.getElementById('coffeeCount').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
+
+            fetch(`${url}?action=logCoffee&userID=${userID}&date=${date}&coffeeCount=${coffeeCount}`, {
+                method: 'POST'
+            }).then(response => response.text())
+              .then(data => alert('Coffee logged successfully!'))
+              .catch(error => console.error('Error:', error));
+        }
+
+        // Function to show total
+        function showTotal() {
+            const userID = document.getElementById('totalUserID').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
+
+            fetch(`${url}?action=getTotalCoffee&userID=${userID}`, {
+                method: 'GET'
+            }).then(response => response.text())
+              .then(total => {
+                  document.getElementById('totalDisplay').innerHTML = `Total coffee consumption: ${total} cups. <button onclick="promptPay()">PayNow?</button>`;
+              })
+              .catch(error => console.error('Error:', error));
+        }
+
+        // Function to prompt for payment
+        function promptPay() {
+            const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
+            alert(`Please pay the total amount to Luyuan 85351341`);
+        }
+    </script>
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coffee Tracker</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
             padding: 20px;
             background-color: #f7f7f7;
         }
