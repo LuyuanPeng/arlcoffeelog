@@ -65,8 +65,8 @@
     
     <!-- Initial User Selection -->
     <div id="initialUserSelection">
-        <!-- <label for="userSelection">Select User:</label> -->
-        <select id="userSelection" onchange="showUserOptions()">
+        <label for="userSelection">Select User:</label>
+        <select id="userSelection">
             <option value="">--Select a User--</option>
         </select>
         <button class="create-user-button" onclick="navigate('createUserPage')">Create New User</button>
@@ -93,21 +93,21 @@
 
         // Function to navigate between pages
         function navigate(page) {
-            // Hide all pages
+            console.log("Navigating to:", page);
             document.getElementById('initialUserSelection').classList.add('hidden');
             document.getElementById('createUserPage').classList.add('hidden');
             document.getElementById('userActions').classList.add('hidden');
 
-            // Show the selected page
             document.getElementById(page).classList.remove('hidden');
         }
 
         // Fetch users from the Google Apps Script
         function fetchUsers() {
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers'; // Replace with your Apps Script Web App URL
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers'; 
             fetch(url)
                 .then(response => response.json())
                 .then(users => {
+                    console.log("Fetched users:", users);
                     const userSelect = document.getElementById('userSelection');
                     users.forEach(user => {
                         const option = document.createElement('option');
@@ -116,19 +116,19 @@
                         userSelect.appendChild(option);
                     });
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => console.error('Error fetching users:', error));
         }
 
         // Create a new user
         function createUser() {
             const username = document.getElementById('newUsername').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
 
             fetch(`${url}?action=createUser&username=${username}`, {
                 method: 'POST'
             }).then(response => response.text())
               .then(userID => {
-                  // After creating user, navigate to user options
+                  console.log("User created:", userID);
                   navigate('initialUserSelection');
                   fetchUsers();  // Refresh the user list
               })
@@ -138,12 +138,16 @@
         // Show user options after selection
         function showUserOptions() {
             const user = document.getElementById('userSelection').value;
+            console.log("User selected:", user);
             if (user) {
+                document.getElementById('initialUserSelection').classList.add('hidden');
                 document.getElementById('userActions').classList.remove('hidden');
             } else {
                 document.getElementById('userActions').classList.add('hidden');
             }
         }
+
+        document.getElementById('userSelection').addEventListener('change', showUserOptions);
 
         // Function to add coffee
         function addCoffee() {
@@ -151,24 +155,29 @@
             const date = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
             const time = new Date().toLocaleTimeString();  // HH:MM:SS based on user's locale
             const coffeeCount = 1;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
 
             fetch(`${url}?action=logCoffee&userID=${userID}&date=${date} ${time}&coffeeCount=${coffeeCount}`, {
                 method: 'POST'
             }).then(response => response.text())
-              .then(data => alert('1 cup of coffee added!'))
+              .then(data => {
+                  console.log("Coffee logged:", data);
+                  alert('1 cup of coffee added!');
+                  checkTotal(); // Optionally update the total immediately after adding
+              })
               .catch(error => console.error('Error:', error));
         }
 
         // Function to check total
         function checkTotal() {
             const userID = document.getElementById('userSelection').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
 
             fetch(`${url}?action=getTotalCoffee&userID=${userID}`, {
                 method: 'GET'
             }).then(response => response.text())
               .then(total => {
+                  console.log("Total coffee consumption:", total);
                   document.getElementById('totalDisplay').innerHTML = `Total coffee consumption: ${total} cups. <button onclick="promptPay()">PayNow?</button>`;
               })
               .catch(error => console.error('Error:', error));
