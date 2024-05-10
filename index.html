@@ -92,24 +92,12 @@
     <div id="totalDisplay"></div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', fetchUsers);
-
-        // Function to navigate between pages
-        function navigate(page) {
-            console.log("Navigating to:", page);
-            document.getElementById('initialUserSelection').classList.add('hidden');
-            document.getElementById('createUserPage').classList.add('hidden');
-            document.getElementById('userActions').classList.add('hidden');
-
-            document.getElementById(page).classList.remove('hidden');
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             fetchUsers();
         });
 
         function fetchUsers() {
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers'; 
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers';
             fetch(url)
                 .then(response => response.json())
                 .then(users => {
@@ -118,7 +106,7 @@
                     userSelect.innerHTML = '<option value="">--Select a User--</option>';  // Reset the dropdown
                     users.forEach(user => {
                         const option = document.createElement('option');
-                        option.value = user.username; // Ensure this is correctly set
+                        option.value = user.username;  // Use username as the value
                         option.textContent = user.username;
                         userSelect.appendChild(option);
                     });
@@ -129,90 +117,56 @@
         function confirmSelection() {
             const userSelect = document.getElementById('userSelection');
             console.log("Dropdown value before selection check:", userSelect.value);  // Log the value being checked
-            const user = userSelect.value;
-            console.log("User selected:", user);  // Confirm what's being read
+            const username = userSelect.value;
+            console.log("User selected:", username);
 
-            if (user) {
+            if (username) {
                 console.log("User is selected, navigating away.");
                 document.getElementById('initialUserSelection').classList.add('hidden');
                 document.getElementById('userActions').classList.remove('hidden');
             } else {
-                console.log("No user selected, prompting user.");  // Check if this branch is hit erroneously
+                console.log("No user selected, prompting user.");
                 alert("Please select a user.");
             }
         }
-        // Create a new user
-        function createUser() {
-            const username = document.getElementById('newUsername').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
 
-            fetch(`${url}?action=createUser&username=${username}`, {
-                method: 'POST'
-            }).then(response => response.text())
-              .then(userID => {
-                  console.log("User created:", userID);
-                  navigate('initialUserSelection');
-                  fetchUsers();  // Refresh the user list
-              })
-              .catch(error => console.error('Error:', error));
-        }
-
-        // Show user options after selection
-        function showUserOptions() {
-            const userSelect = document.getElementById('userSelection');
-            const user = userSelect.value;  // Make sure this correctly gets the value
-            console.log("User selected:", user);  // This should log the selected user ID or name
-
-            if (user) {
-                    document.getElementById('initialUserSelection').classList.add('hidden');
-                    document.getElementById('userActions').classList.remove('hidden');
-                } else {
-                    document.getElementById('userActions').classList.add('hidden');
-                }
-        }
-
-        document.getElementById('userSelection').addEventListener('change', showUserOptions);
-
-        // Function to add coffee
         function addCoffee() {
-            const userID = document.getElementById('userSelection').value;
+            const username = document.getElementById('userSelection').value;
             const date = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
             const time = new Date().toLocaleTimeString();  // HH:MM:SS based on user's locale
             const coffeeCount = 1;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
 
-            fetch(`${url}?action=logCoffee&userID=${userID}&date=${date} ${time}&coffeeCount=${coffeeCount}`, {
+            fetch(`${url}?action=logCoffee&username=${username}&date=${date} ${time}&coffeeCount=${coffeeCount}`, {
                 method: 'POST'
             }).then(response => response.text())
-              .then(data => {
-                  console.log("Coffee logged:", data);
-                  alert('1 cup of coffee added!');
-                  checkTotal(); // Optionally update the total immediately after adding
-              })
-              .catch(error => console.error('Error:', error));
+            .then(data => {
+                console.log("Coffee logged:", data);
+                alert('1 cup of coffee added!');
+                checkTotal(); // Optionally update the total immediately after adding
+            })
+            .catch(error => console.error('Error:', error));
         }
 
-        // Function to check total
         function checkTotal() {
-            const userID = document.getElementById('userSelection').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
+            const username = document.getElementById('userSelection').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
 
-            fetch(`${url}?action=getTotalCoffee&userID=${userID}`, {
+            fetch(`${url}?action=getTotalCoffee&username=${username}`, {
                 method: 'GET'
             }).then(response => response.text())
-              .then(total => {
-                  console.log("Total coffee consumption:", total);
-                  document.getElementById('totalDisplay').innerHTML = `Total coffee consumption: ${total} cups. <button onclick="promptPay()">PayNow?</button>`;
-              })
-              .catch(error => console.error('Error:', error));
+            .then(total => {
+                console.log("Total coffee consumption:", total);
+                document.getElementById('totalDisplay').innerHTML = `Total coffee consumption: ${total} cups. <button onclick="promptPay()">PayNow?</button>`;
+            })
+            .catch(error => console.error('Error:', error));
         }
 
-        // Function to prompt for payment
         function promptPay() {
             const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
             alert(`Please pay the total amount to Luyuan 85351341`);
         }
-        document.getElementById('userSelection').addEventListener('change', showUserOptions);
+
 
     </script>
 </body>
