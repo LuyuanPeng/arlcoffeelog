@@ -49,6 +49,17 @@
         .create-user-button:hover {
             background-color: #f0f0f0;
         }
+        .payment-button {
+            background-color: transparent;
+            color: rgb(188, 62, 62);
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 14px;
+        }
+        .payment-button:hover {
+            background-color: #f0f0f0;
+        }
         .hidden {
             display: none;
         }
@@ -64,15 +75,13 @@
     <h1>ARL JURA Productivity Logger</h1>
     
     <!-- Initial User Selection -->
-    <!-- Initial User Selection -->
     <div id="initialUserSelection">
-        <label for="userSelection">Select User:</label>
+        <!-- <label for="userSelection">Select User:</label> -->
         <select id="userSelection">
             <option value="">--Select a User--</option>
         </select>
         <button onclick="confirmSelection()">Confirm</button>
         <button class="create-user-button" onclick="navigate('createUserPage')">Create New User</button>
-          <!-- Confirm button -->
     </div>
 
     <!-- Create User Page (Initially Hidden) -->
@@ -84,17 +93,27 @@
 
     <!-- User Actions (Initially Hidden) -->
     <div id="userActions" class="hidden">
+        <!-- <h2></h2> -->
         <button onclick="addCoffee()">Add a Cup &#9749</button>
         <button onclick="checkTotal()">Check Total &#128176</button>
     </div>
 
     <!-- Display Total -->
     <div id="totalDisplay"></div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             fetchUsers();
         });
+
+        // Function to navigate between pages
+        function navigate(page) {
+            console.log("Navigating to:", page);
+            document.getElementById('initialUserSelection').classList.add('hidden');
+            document.getElementById('createUserPage').classList.add('hidden');
+            document.getElementById('userActions').classList.add('hidden');
+
+            document.getElementById(page).classList.remove('hidden');
+        }
 
         function fetchUsers() {
             const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers';
@@ -130,6 +149,22 @@
             }
         }
 
+        // Create a new user
+        function createUser() {
+            const username = document.getElementById('newUsername').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
+
+            fetch(`${url}?action=createUser&username=${username}`, {
+                method: 'POST'
+            }).then(response => response.text())
+              .then(userID => {
+                  console.log("User created:", userID);
+                  navigate('initialUserSelection');
+                  fetchUsers();  // Refresh the user list
+              })
+              .catch(error => console.error('Error:', error));
+        }
+
         function addCoffee() {
             const username = document.getElementById('userSelection').value;
             const date = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
@@ -142,7 +177,7 @@
             }).then(response => response.text())
             .then(data => {
                 console.log("Coffee logged:", data);
-                alert('1 cup of coffee added!');
+                alert('Productivity UP!');
                 checkTotal(); // Optionally update the total immediately after adding
             })
             .catch(error => console.error('Error:', error));
@@ -157,7 +192,8 @@
             }).then(response => response.text())
             .then(total => {
                 console.log("Total coffee consumption:", total);
-                document.getElementById('totalDisplay').innerHTML = `Total coffee consumption: ${total} cups. <button onclick="promptPay()">PayNow?</button>`;
+                const amountOwed = (total * 0.60).toFixed(2); // Formats the amount to two decimal places
+                document.getElementById('totalDisplay').innerHTML = `Total cups: ${total} cups. Amount owed: $${amountOwed} <button class="payment-button" onclick="promptPay()">&#128520; Payment Info &#128184;</button>`;
             })
             .catch(error => console.error('Error:', error));
         }
