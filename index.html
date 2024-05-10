@@ -64,12 +64,15 @@
     <h1>ARL JURA Productivity Logger</h1>
     
     <!-- Initial User Selection -->
+    <!-- Initial User Selection -->
     <div id="initialUserSelection">
         <label for="userSelection">Select User:</label>
         <select id="userSelection">
             <option value="">--Select a User--</option>
         </select>
+        <button onclick="confirmSelection()">Confirm</button>
         <button class="create-user-button" onclick="navigate('createUserPage')">Create New User</button>
+          <!-- Confirm button -->
     </div>
 
     <!-- Create User Page (Initially Hidden) -->
@@ -101,7 +104,10 @@
             document.getElementById(page).classList.remove('hidden');
         }
 
-        // Fetch users from the Google Apps Script
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchUsers();
+        });
+
         function fetchUsers() {
             const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers'; 
             fetch(url)
@@ -109,9 +115,10 @@
                 .then(users => {
                     console.log("Fetched users:", users);
                     const userSelect = document.getElementById('userSelection');
+                    userSelect.innerHTML = '<option value="">--Select a User--</option>';  // Reset the dropdown
                     users.forEach(user => {
                         const option = document.createElement('option');
-                        option.value = user.userID;
+                        option.value = user.username; // Ensure this is correctly set
                         option.textContent = user.username;
                         userSelect.appendChild(option);
                     });
@@ -119,6 +126,21 @@
                 .catch(error => console.error('Error fetching users:', error));
         }
 
+        function confirmSelection() {
+            const userSelect = document.getElementById('userSelection');
+            console.log("Dropdown value before selection check:", userSelect.value);  // Log the value being checked
+            const user = userSelect.value;
+            console.log("User selected:", user);  // Confirm what's being read
+
+            if (user) {
+                console.log("User is selected, navigating away.");
+                document.getElementById('initialUserSelection').classList.add('hidden');
+                document.getElementById('userActions').classList.remove('hidden');
+            } else {
+                console.log("No user selected, prompting user.");  // Check if this branch is hit erroneously
+                alert("Please select a user.");
+            }
+        }
         // Create a new user
         function createUser() {
             const username = document.getElementById('newUsername').value;
