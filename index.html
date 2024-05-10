@@ -137,16 +137,16 @@
 
         // Show user options after selection
         function showUserOptions() {
-        const userSelect = document.getElementById('userSelection');
-        const user = userSelect.value;  // Make sure this correctly gets the value
-        console.log("User selected:", user);  // This should log the selected user ID or name
+            const userSelect = document.getElementById('userSelection');
+            const user = userSelect.value;  // Make sure this correctly gets the value
+            console.log("User selected:", user);  // This should log the selected user ID or name
 
-        if (user) {
-                document.getElementById('initialUserSelection').classList.add('hidden');
-                document.getElementById('userActions').classList.remove('hidden');
-            } else {
-                document.getElementById('userActions').classList.add('hidden');
-            }
+            if (user) {
+                    document.getElementById('initialUserSelection').classList.add('hidden');
+                    document.getElementById('userActions').classList.remove('hidden');
+                } else {
+                    document.getElementById('userActions').classList.add('hidden');
+                }
         }
 
         document.getElementById('userSelection').addEventListener('change', showUserOptions);
