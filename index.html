@@ -2,26 +2,50 @@
 <html>
 <head>
     <title>Coffee Tracker</title>
+    <style>
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
     <h1>Coffee Tracker</h1>
     <div>
-        <label>User ID: <input type="text" id="userID"></label>
+        <button onclick="navigate('logCoffee')">Log Coffee</button>
+        <button onclick="navigate('showTotal')">Show Total</button>
     </div>
-    <div>
-        <label>Date: <input type="date" id="date"></label>
+
+    <!-- Log Coffee Form (Initially Hidden) -->
+    <div id="logCoffeeForm" class="hidden">
+        <h2>Log Coffee</h2>
+        <label>User ID: <input type="text" id="userID"></label><br>
+        <label>Date: <input type="date" id="date"></label><br>
+        <label>Coffee Count: <input type="number" id="coffeeCount"></label><br>
+        <button onclick="logCoffee()">Submit</button><br>
+        <button onclick="navigate('main')">Back</button>
     </div>
-    <div>
-        <label>Coffee Count: <input type="number" id="coffeeCount"></label>
+
+    <!-- Show Total Form (Initially Hidden) -->
+    <div id="showTotalForm" class="hidden">
+        <h2>Show Total</h2>
+        <label>User ID: <input type="text" id="totalUserID"></label><br>
+        <button onclick="showTotal()">Check Total</button><br>
+        <div id="totalDisplay"></div>
+        <button onclick="navigate('main')">Back</button>
     </div>
-    <div>
-        <button onclick="logCoffee()">Log Coffee</button>
-    </div>
-    <div>
-        <button onclick="showTotal()">Show Total</button>
-    </div>
-    <div id="totalDisplay"></div>
+
     <script>
+        // Function to navigate between "pages"
+        function navigate(page) {
+            document.getElementById('logCoffeeForm').classList.add('hidden');
+            document.getElementById('showTotalForm').classList.add('hidden');
+
+            if (page === 'logCoffee') {
+                document.getElementById('logCoffeeForm').classList.remove('hidden');
+            } else if (page === 'showTotal') {
+                document.getElementById('showTotalForm').classList.remove('hidden');
+            }
+        }
+
+        // Function to log coffee
         function logCoffee() {
             const userID = document.getElementById('userID').value;
             const date = document.getElementById('date').value;
@@ -35,8 +59,9 @@
               .catch(error => console.error('Error:', error));
         }
 
+        // Function to show total
         function showTotal() {
-            const userID = document.getElementById('userID').value;
+            const userID = document.getElementById('totalUserID').value;
             const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; // Replace with your Apps Script Web App URL
 
             fetch(`${url}?action=getTotalCoffee&userID=${userID}`, {
@@ -48,6 +73,7 @@
               .catch(error => console.error('Error:', error));
         }
 
+        // Function to prompt for payment
         function promptPay() {
             const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
             alert(`Please pay the total amount to Luyuan 85351341`);
