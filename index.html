@@ -137,15 +137,17 @@
 
         // Show user options after selection
         function showUserOptions() {
-            const user = document.getElementById('userSelection').value;
-            console.log("User selected:", user);
-            if (user) {
-                document.getElementById('initialUserSelection').classList.add('hidden');
-                document.getElementById('userActions').classList.remove('hidden');
-            } else {
-                document.getElementById('userActions').classList.add('hidden');
-            }
+        const userSelect = document.getElementById('userSelection');
+        const user = userSelect.value;  // Make sure this correctly gets the value
+        console.log("User selected:", user);  // This should log the selected user ID or name
+
+        if (user) {
+            document.getElementById('initialUserSelection').classList.add('hidden');
+            document.getElementById('userActions').classList.remove('hidden');
+        } else {
+            document.getElementById('userActions').classList.add('hidden');
         }
+    }
 
         document.getElementById('userSelection').addEventListener('change', showUserOptions);
 
@@ -188,6 +190,8 @@
             const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
             alert(`Please pay the total amount to Luyuan 85351341`);
         }
+        document.getElementById('userSelection').addEventListener('change', showUserOptions);
+
     </script>
 </body>
 </html>
