@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coffee Tracker</title>
+</head>
+<body>
+    <h1>Coffee Tracker</h1>
+    <div>
+        <label>User ID: <input type="text" id="userID"></label>
+    </div>
+    <div>
+        <label>Date: <input type="date" id="date"></label>
+    </div>
+    <div>
+        <label>Coffee Count: <input type="number" id="coffeeCount"></label>
+    </div>
+    <div>
+        <button onclick="logCoffee()">Log Coffee</button>
+    </div>
+    <script>
+        function logCoffee() {
+            const userID = document.getElementById('userID').value;
+            const date = document.getElementById('date').value;
+            const coffeeCount = document.getElementById('coffeeCount').value;
+            const url = 'YOUR_DEPLOYED_WEB_APP_URL'; // Replace with your Apps Script Web App URL
+
+            fetch(`${url}?action=logCoffee&userID=${userID}&date=${date}&coffeeCount=${coffeeCount}`, {
+                method: 'POST'
+            }).then(response => response.text())
+              .then(data => alert('Coffee logged successfully!'))
+              .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
