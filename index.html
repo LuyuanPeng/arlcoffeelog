@@ -22,7 +22,7 @@
             const userID = document.getElementById('userID').value;
             const date = document.getElementById('date').value;
             const coffeeCount = document.getElementById('coffeeCount').value;
-            const url = 'https://script.google.com/macros/s/AKfycbzsYAuYQskYa9WKtWamCPHdHU4boGJz9aSLk59u2wMzTsPCAzqxaj7xN9sDIUVDjiq9/exec'; // Replace with your Apps Script Web App URL
+            const url = 'https://script.google.com/macros/s/AKfycbxiZaH6i98p7bfLhGuDXTyJpEAYDvUzgv9V2FIrFgK0Fgh-lr9JSvkJkvzeEV9qK8mD/exec'; // Replace with your Apps Script Web App URL
 
             fetch(`${url}?action=logCoffee&userID=${userID}&date=${date}&coffeeCount=${coffeeCount}`, {
                 method: 'POST'
