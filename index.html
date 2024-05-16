@@ -96,12 +96,22 @@
     <!-- User Actions (Initially Hidden) -->
     <div id="userActions" class="hidden">
         <!-- <h2></h2> -->
-        <button onclick="addCoffee()">Add a Cup &#9749</button>
-        <button onclick="checkTotal()">Check Total &#128176</button>
+        <button onclick="addCoffee()">Add a Cup &#9749;</button>
+        <button onclick="checkTotal()">Check Total &#128176;</button>
+        <button onclick="showConfirmReset()">Reset</button> <!-- Reset button -->
     </div>
 
     <!-- Display Total -->
     <div id="totalDisplay"></div>
+
+  
+
+    <!-- Reset Confirmation (Initially Hidden) -->
+    <div id="resetConfirmation" class="hidden">
+        <p>Please confirm you have paid and inform Kee before reset.</p>
+        <button onclick="confirmReset()">Confirm</button>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             fetchUsers();
@@ -204,6 +214,29 @@
             const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
             alert(`PayLah!/PayNow to 81982143. Inform Kee of your payment of $${total} for coffee. Thank you!`);
         }
+
+        function showConfirmReset() {
+            // Show confirmation UI
+            document.getElementById('resetConfirmation').classList.remove('hidden');
+            document.getElementById('userActions').classList.add('hidden'); // Optionally hide other actions
+        }
+
+        function confirmReset() {
+            const username = document.getElementById('userSelection').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
+
+            // Make a POST request to reset the user's data
+            fetch(`${url}?action=resetUserData&username=${username}`, {
+                method: 'POST'
+            }).then(response => response.text())
+            .then(data => {
+                alert('Data reset successfully.');
+                document.getElementById('resetConfirmation').classList.add('hidden'); // Hide confirmation UI
+                document.getElementById('userActions').classList.remove('hidden'); // Show other actions
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
 
 
     </script>
