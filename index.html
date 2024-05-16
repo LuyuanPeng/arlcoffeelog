@@ -51,6 +51,30 @@
         .create-user-button:hover {
             background-color: #f0f0f0;
         }
+        .reset-button {
+            background-color: rgb(188, 62, 62);
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 18px;
+        }
+        .reset-button:hover {
+            background-color: rgb(188, 62, 62);
+        }
+
+        .confirm-button {
+            background-color: rgb(188, 62, 62);
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 14px;
+            width: 30%;
+        }
+        .confirm-button:hover {
+            background-color: rgb(188, 62, 62);
+        }
         .payment-button {
             background-color: transparent;
             color: rgb(188, 62, 62);
@@ -98,18 +122,17 @@
         <!-- <h2></h2> -->
         <button onclick="addCoffee()">Add a Cup &#9749;</button>
         <button onclick="checkTotal()">Check Total &#128176;</button>
-        <button onclick="showConfirmReset()">Reset</button> <!-- Reset button -->
+        <button class="reset-button" onclick="prepareReset()">Reset 🗑️</button> <!-- Reset button -->
     </div>
 
     <!-- Display Total -->
     <div id="totalDisplay"></div>
 
-  
 
     <!-- Reset Confirmation (Initially Hidden) -->
     <div id="resetConfirmation" class="hidden">
-        <p>Please confirm you have paid and inform Kee before reset.</p>
-        <button onclick="confirmReset()">Confirm</button>
+        <p id="resetMessage">Please confirm you have paid $<span id="totalAmountDue">0</span> and informed Kee before reset.</p>
+        <button class="confirm-button" onclick="confirmReset()">Confirm ✅</button>
     </div>
 
     <script>
@@ -212,13 +235,27 @@
 
         function promptPay() {
             const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
-            alert(`PayLah!/PayNow to 81982143. Inform Kee of your payment of $${total} for coffee. Thank you!`);
+            alert(`PayLah!/PayNow to 81982143. Inform Kee of your payment.`);
         }
 
-        function showConfirmReset() {
-            // Show confirmation UI
-            document.getElementById('resetConfirmation').classList.remove('hidden');
-            document.getElementById('userActions').classList.add('hidden'); // Optionally hide other actions
+        function prepareReset() {
+            const username = document.getElementById('userSelection').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
+
+            // Fetch the total coffee first
+            fetch(`${url}?action=getTotalCoffee&username=${username}`, {
+                method: 'GET'
+            }).then(response => response.text())
+            .then(total => {
+                const amountOwed = (total * 0.60).toFixed(2); // Assume $0.60 per cup
+                document.getElementById('totalAmountDue').textContent = amountOwed;
+                document.getElementById('resetMessage').textContent = `Please confirm you have paid $${amountOwed} to Kee before reset.`;
+                document.getElementById('resetConfirmation').classList.remove('hidden');
+                document.getElementById('userActions').classList.add('hidden'); // Optionally hide other actions
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
         }
 
         function confirmReset() {
@@ -234,7 +271,10 @@
                 document.getElementById('resetConfirmation').classList.add('hidden'); // Hide confirmation UI
                 document.getElementById('userActions').classList.remove('hidden'); // Show other actions
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to reset data.');
+            });
         }
 
 
