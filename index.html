@@ -120,7 +120,8 @@
     <!-- User Actions (Initially Hidden) -->
     <div id="userActions" class="hidden">
         <!-- <h2></h2> -->
-        <button onclick="addCoffee()">Add a Cup &#9749;</button>
+        <input type="number" id="cupCount" value="1" min="1" max="100" aria-label="Number of cups to add">
+        <button onclick="addCoffee()">Add Cup(s) &#9749;</button>
         <button onclick="checkTotal()">Check Total &#128176;</button>
         <button class="reset-button" onclick="prepareReset()">Reset 🗑️</button> <!-- Reset button -->
     </div>
@@ -204,7 +205,7 @@
             const username = document.getElementById('userSelection').value;
             const date = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
             const time = new Date().toLocaleTimeString();  // HH:MM:SS based on user's locale
-            const coffeeCount = 1;
+            const coffeeCount = parseInt(document.getElementById('cupCount').value) || 1;
             const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
 
             fetch(`${url}?action=logCoffee&username=${username}&date=${date} ${time}&coffeeCount=${coffeeCount}`, {
