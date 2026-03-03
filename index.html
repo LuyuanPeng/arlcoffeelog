@@ -228,7 +228,7 @@
             }).then(response => response.text())
             .then(total => {
                 console.log("Total coffee consumption:", total);
-                const amountOwed = (total * 0.60).toFixed(2); // Formats the amount to two decimal places
+                const amountOwed = (total * 0.80).toFixed(2); // Formats the amount to two decimal places
                 document.getElementById('totalDisplay').innerHTML = `Total cups: ${total} cups. Amount owed: $${amountOwed} <button class="payment-button" onclick="promptPay()">&#128520; Payment Info &#128184;</button>`;
             })
             .catch(error => console.error('Error:', error));
@@ -248,7 +248,7 @@
                 method: 'GET'
             }).then(response => response.text())
             .then(total => {
-                const amountOwed = (total * 0.60).toFixed(2); // Assume $0.60 per cup
+                const amountOwed = (total * 0.80).toFixed(2); // Assume $0.80 per cup
                 document.getElementById('totalAmountDue').textContent = amountOwed;
                 document.getElementById('resetMessage').textContent = `Please confirm you have paid $${amountOwed} to Kee before reset.`;
                 document.getElementById('resetConfirmation').classList.remove('hidden');
