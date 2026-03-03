@@ -1,10 +1,285 @@
-function checkTotal() {
-    var cups = document.getElementById('cups').value;
-    var total = cups * 0.60;
-    alert('Total amount owed: $' + total);
-}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Tracker</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100vh;
+            align-items: center;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        div, select {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input, button, select {
+            margin: 5px;
+            padding: 10px;
+            width: 70%;
+            max-width: 300px;
+            font-size: 18px;
+        }
+        button {
+            background-color: #383306;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #383306;
+        }
+        .create-user-button {
+            background-color: transparent;
+            color: #333;
+            border: 2px solid #383306;
+            padding: 5px;
+            font-size: 14px;
+            width: 50%; /* Smaller width */
+        }
+        .create-user-button:hover {
+            background-color: #f0f0f0;
+        }
+        .reset-button {
+            background-color: rgb(188, 62, 62);
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 18px;
+        }
+        .reset-button:hover {
+            background-color: rgb(188, 62, 62);
+        }
 
-function prepareReset() {
-    document.getElementById('cups').value = '';
-    alert('Reset!');
-}
+        .confirm-button {
+            background-color: rgb(188, 62, 62);
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 14px;
+            width: 30%;
+        }
+        .confirm-button:hover {
+            background-color: rgb(188, 62, 62);
+        }
+        .payment-button {
+            background-color: transparent;
+            color: rgb(188, 62, 62);
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 14px;
+        }
+        .payment-button:hover {
+            background-color: #f0f0f0;
+        }
+        .hidden {
+            display: none;
+        }
+        @media (max-width: 600px) {
+            input, button, select {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <span style="font-size: 100px;">&#9749</span>
+    <h1>ARL Productivity Logger</h1>
+    
+    <!-- Initial User Selection -->
+    <div id="initialUserSelection">
+        <!-- <label for="userSelection">Select User:</label> -->
+        <select id="userSelection">
+            <option value="">--Select a User--</option>
+        </select>
+        <button onclick="confirmSelection()">Confirm</button>
+        <button class="create-user-button" onclick="navigate('createUserPage')">Create New User</button>
+    </div>
+
+    <!-- Create User Page (Initially Hidden) -->
+    <div id="createUserPage" class="hidden">
+        <input type="text" id="newUsername" placeholder="New User Name">
+        <button onclick="createUser()">Submit</button>
+        <button onclick="navigate('initialUserSelection')">Back</button>
+    </div>
+
+    <!-- User Actions (Initially Hidden) -->
+    <div id="userActions" class="hidden">
+        <!-- <h2></h2> -->
+        <input type="number" id="cupCount" value="1" min="1" max="100" aria-label="Number of cups to add">
+        <button onclick="addCoffee()">Add Cup(s) &#9749;</button>
+        <button onclick="checkTotal()">Check Total &#128176;</button>
+        <button class="reset-button" onclick="prepareReset()">Reset 🗑️</button> <!-- Reset button -->
+    </div>
+
+    <!-- Display Total -->
+    <div id="totalDisplay"></div>
+
+
+    <!-- Reset Confirmation (Initially Hidden) -->
+    <div id="resetConfirmation" class="hidden">
+        <p id="resetMessage">Please confirm you have paid $<span id="totalAmountDue">0</span> and informed Kee before reset.</p>
+        <button class="confirm-button" onclick="confirmReset()">Confirm ✅</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchUsers();
+        });
+
+        // Function to navigate between pages
+        function navigate(page) {
+            console.log("Navigating to:", page);
+            document.getElementById('initialUserSelection').classList.add('hidden');
+            document.getElementById('createUserPage').classList.add('hidden');
+            document.getElementById('userActions').classList.add('hidden');
+
+            document.getElementById(page).classList.remove('hidden');
+        }
+
+        function fetchUsers() {
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers';
+            fetch(url)
+                .then(response => response.json())
+                .then(users => {
+                    console.log("Fetched users:", users);
+                    const userSelect = document.getElementById('userSelection');
+                    userSelect.innerHTML = '<option value="">--Select a User--</option>';  // Reset the dropdown
+                    users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.username;  // Use username as the value
+                        option.textContent = user.username;
+                        userSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching users:', error));
+        }
+
+        function confirmSelection() {
+            const userSelect = document.getElementById('userSelection');
+            console.log("Dropdown value before selection check:", userSelect.value);  // Log the value being checked
+            const username = userSelect.value;
+            console.log("User selected:", username);
+
+            if (username) {
+                console.log("User is selected, navigating away.");
+                document.getElementById('initialUserSelection').classList.add('hidden');
+                document.getElementById('userActions').classList.remove('hidden');
+            } else {
+                console.log("No user selected, prompting user.");
+                alert("Please select a user.");
+            }
+        }
+
+        // Create a new user
+        function createUser() {
+            const username = document.getElementById('newUsername').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
+
+            fetch(`${url}?action=createUser&username=${username}`, {
+                method: 'POST'
+            }).then(response => response.text())
+              .then(userID => {
+                  console.log("User created:", userID);
+                  navigate('initialUserSelection');
+                  fetchUsers();  // Refresh the user list
+              })
+              .catch(error => console.error('Error:', error));
+        }
+
+        function addCoffee() {
+            const username = document.getElementById('userSelection').value;
+            const date = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
+            const time = new Date().toLocaleTimeString();  // HH:MM:SS based on user's locale
+            const coffeeCount = parseInt(document.getElementById('cupCount').value) || 1;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
+
+            fetch(`${url}?action=logCoffee&username=${username}&date=${date} ${time}&coffeeCount=${coffeeCount}`, {
+                method: 'POST'
+            }).then(response => response.text())
+            .then(data => {
+                console.log("Coffee logged:", data);
+                alert('Productivity UP!');
+                checkTotal(); // Optionally update the total immediately after adding
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function checkTotal() {
+            const username = document.getElementById('userSelection').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
+
+            fetch(`${url}?action=getTotalCoffee&username=${username}`, {
+                method: 'GET'
+            }).then(response => response.text())
+            .then(total => {
+                console.log("Total coffee consumption:", total);
+                const amountOwed = (total * 0.60).toFixed(2); // Formats the amount to two decimal places
+                document.getElementById('totalDisplay').innerHTML = `Total cups: ${total} cups. Amount owed: $${amountOwed} <button class="payment-button" onclick="promptPay()">&#128520; Payment Info &#128184;</button>`;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function promptPay() {
+            const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
+            alert(`PayLah!/PayNow to 81982143. Inform Kee of your payment.`);
+        }
+
+        function prepareReset() {
+            const username = document.getElementById('userSelection').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
+
+            // Fetch the total coffee first
+            fetch(`${url}?action=getTotalCoffee&username=${username}`, {
+                method: 'GET'
+            }).then(response => response.text())
+            .then(total => {
+                const amountOwed = (total * 0.60).toFixed(2); // Assume $0.60 per cup
+                document.getElementById('totalAmountDue').textContent = amountOwed;
+                document.getElementById('resetMessage').textContent = `Please confirm you have paid $${amountOwed} to Kee before reset.`;
+                document.getElementById('resetConfirmation').classList.remove('hidden');
+                document.getElementById('userActions').classList.add('hidden'); // Optionally hide other actions
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function confirmReset() {
+            const username = document.getElementById('userSelection').value;
+            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
+
+            // Make a POST request to reset the user's data
+            fetch(`${url}?action=resetUserData&username=${username}`, {
+                method: 'POST'
+            }).then(response => response.text())
+            .then(data => {
+                alert('Data reset successfully.');
+                document.getElementById('resetConfirmation').classList.add('hidden'); // Hide confirmation UI
+                document.getElementById('userActions').classList.remove('hidden'); // Show other actions
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to reset data.');
+            });
+        }
+
+
+
+    </script>
+</body>
+</html>
