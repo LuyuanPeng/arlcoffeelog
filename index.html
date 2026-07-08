@@ -123,11 +123,15 @@
         <input type="number" id="cupCount" value="1" min="1" max="100" aria-label="Number of cups to add">
         <button onclick="addCoffee()">Add Cup(s) &#9749;</button>
         <button onclick="checkTotal()">Check Total &#128176;</button>
+        <button onclick="showLogs()">My Logs &#128220;</button>
         <button class="reset-button" onclick="prepareReset()">Reset 🗑️</button> <!-- Reset button -->
     </div>
 
     <!-- Display Total -->
     <div id="totalDisplay"></div>
+
+    <!-- Display Logs Snapshot -->
+    <div id="logsDisplay"></div>
 
 
     <!-- Reset Confirmation (Initially Hidden) -->
@@ -136,150 +140,231 @@
         <button class="confirm-button" onclick="confirmReset()">Confirm ✅</button>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            fetchUsers();
-        });
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import {
+            getFirestore, collection, doc, getDoc, getDocs,
+            setDoc, updateDoc, addDoc, deleteDoc, increment, serverTimestamp,
+            query, orderBy
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+        // ---------------------------------------------------------------------
+        // TODO: paste the firebaseConfig from your Firebase project here.
+        // (Firebase console → Project settings → Your apps → Web app → Config)
+        // These values are meant to be public; security is enforced by
+        // Firestore rules, not by hiding this config.
+        // ---------------------------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyAggyIml6uy8-1dlOXtGgFFP_RwLBtbVas",
+            authDomain: "arl-coffee-log.firebaseapp.com",
+            projectId: "arl-coffee-log",
+            storageBucket: "arl-coffee-log.firebasestorage.app",
+            messagingSenderId: "302747896257",
+            appId: "1:302747896257:web:b55efd5026a6a861fe0740"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const PRICE_PER_CUP = 0.80;
+
+        // Cache the selected user's total locally so "Add Cup" updates instantly
+        // (one atomic write per cup, no read round-trip).
+        let currentCups = 0;
+
+        function renderTotal(cups) {
+            const amountOwed = (cups * PRICE_PER_CUP).toFixed(2);
+            document.getElementById('totalDisplay').innerHTML =
+                `Total cups: ${cups} cups. Amount owed: $${amountOwed} ` +
+                `<button class="payment-button" onclick="promptPay()">&#128520; Payment Info &#128184;</button>`;
+        }
+
+        function setStatus(message) {
+            document.getElementById('totalDisplay').textContent = message;
+        }
+
+        function userDoc(username) {
+            return doc(db, 'users', username);
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchUsers);
 
         // Function to navigate between pages
         function navigate(page) {
-            console.log("Navigating to:", page);
             document.getElementById('initialUserSelection').classList.add('hidden');
             document.getElementById('createUserPage').classList.add('hidden');
             document.getElementById('userActions').classList.add('hidden');
-
             document.getElementById(page).classList.remove('hidden');
         }
 
-        function fetchUsers() {
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec?action=getUsers';
-            fetch(url)
-                .then(response => response.json())
-                .then(users => {
-                    console.log("Fetched users:", users);
-                    const userSelect = document.getElementById('userSelection');
-                    userSelect.innerHTML = '<option value="">--Select a User--</option>';  // Reset the dropdown
-                    users.forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.username;  // Use username as the value
-                        option.textContent = user.username;
-                        userSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error fetching users:', error));
+        async function fetchUsers() {
+            const userSelect = document.getElementById('userSelection');
+            try {
+                const snapshot = await getDocs(collection(db, 'users'));
+                userSelect.innerHTML = '<option value="">--Select a User--</option>';
+                snapshot.forEach(docSnap => {
+                    const username = docSnap.data().username || docSnap.id;
+                    const option = document.createElement('option');
+                    option.value = username;
+                    option.textContent = username;
+                    userSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
         }
 
-        function confirmSelection() {
-            const userSelect = document.getElementById('userSelection');
-            console.log("Dropdown value before selection check:", userSelect.value);  // Log the value being checked
-            const username = userSelect.value;
-            console.log("User selected:", username);
-
-            if (username) {
-                console.log("User is selected, navigating away.");
-                document.getElementById('initialUserSelection').classList.add('hidden');
-                document.getElementById('userActions').classList.remove('hidden');
-            } else {
-                console.log("No user selected, prompting user.");
+        async function confirmSelection() {
+            const username = document.getElementById('userSelection').value;
+            if (!username) {
                 alert("Please select a user.");
+                return;
+            }
+            document.getElementById('initialUserSelection').classList.add('hidden');
+            document.getElementById('userActions').classList.remove('hidden');
+            document.getElementById('logsDisplay').textContent = '';
+            document.getElementById('totalDisplay').textContent = '';
+            // Preload this user's current total into the local cache.
+            try {
+                const snap = await getDoc(userDoc(username));
+                currentCups = snap.exists() ? (snap.data().cups || 0) : 0;
+            } catch (error) {
+                console.error('Error loading user total:', error);
+                currentCups = 0;
             }
         }
 
         // Create a new user
-        function createUser() {
-            const username = document.getElementById('newUsername').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec'; 
-
-            fetch(`${url}?action=createUser&username=${username}`, {
-                method: 'POST'
-            }).then(response => response.text())
-              .then(userID => {
-                  console.log("User created:", userID);
-                  navigate('initialUserSelection');
-                  fetchUsers();  // Refresh the user list
-              })
-              .catch(error => console.error('Error:', error));
+        async function createUser() {
+            const username = document.getElementById('newUsername').value.trim();
+            if (!username) {
+                alert("Please enter a name.");
+                return;
+            }
+            try {
+                const ref = userDoc(username);
+                const existing = await getDoc(ref);
+                if (existing.exists()) {
+                    alert("That user already exists.");
+                    return;
+                }
+                await setDoc(ref, { username, cups: 0, createdAt: serverTimestamp() });
+                document.getElementById('newUsername').value = '';
+                navigate('initialUserSelection');
+                fetchUsers();  // Refresh the user list
+            } catch (error) {
+                console.error('Error creating user:', error);
+                alert('Failed to create user.');
+            }
         }
 
-        function addCoffee() {
+        async function addCoffee() {
             const username = document.getElementById('userSelection').value;
-            const date = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
-            const time = new Date().toLocaleTimeString();  // HH:MM:SS based on user's locale
             const coffeeCount = parseInt(document.getElementById('cupCount').value) || 1;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
-
-            fetch(`${url}?action=logCoffee&username=${username}&date=${date} ${time}&coffeeCount=${coffeeCount}`, {
-                method: 'POST'
-            }).then(response => response.text())
-            .then(data => {
-                console.log("Coffee logged:", data);
-                alert('Productivity UP!');
-                checkTotal(); // Optionally update the total immediately after adding
-            })
-            .catch(error => console.error('Error:', error));
+            const button = document.querySelector('#userActions button');
+            if (button) button.disabled = true;
+            try {
+                await updateDoc(userDoc(username), { cups: increment(coffeeCount) });
+                // Append a permanent history entry for the "My Logs" snapshot.
+                addDoc(collection(db, 'users', username, 'logs'),
+                       { ts: Date.now(), count: coffeeCount })
+                    .catch(err => console.error('Error writing log entry:', err));
+                currentCups += coffeeCount;   // optimistic local update, no extra read
+                renderTotal(currentCups);
+            } catch (error) {
+                console.error('Error logging coffee:', error);
+                setStatus('Failed to log — please try again.');
+            } finally {
+                if (button) button.disabled = false;
+            }
         }
 
-        function checkTotal() {
+        async function checkTotal() {
             const username = document.getElementById('userSelection').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
-
-            fetch(`${url}?action=getTotalCoffee&username=${username}`, {
-                method: 'GET'
-            }).then(response => response.text())
-            .then(total => {
-                console.log("Total coffee consumption:", total);
-                const amountOwed = (total * 0.80).toFixed(2); // Formats the amount to two decimal places
-                document.getElementById('totalDisplay').innerHTML = `Total cups: ${total} cups. Amount owed: $${amountOwed} <button class="payment-button" onclick="promptPay()">&#128520; Payment Info &#128184;</button>`;
-            })
-            .catch(error => console.error('Error:', error));
+            try {
+                const snap = await getDoc(userDoc(username));
+                currentCups = snap.exists() ? (snap.data().cups || 0) : 0;
+                renderTotal(currentCups);
+            } catch (error) {
+                console.error('Error checking total:', error);
+                setStatus('Failed to load total.');
+            }
         }
 
         function promptPay() {
-            const total = document.getElementById('totalDisplay').textContent.split(' ')[3];
             alert(`PayLah!/PayNow to 81982143. Inform Kee of your payment.`);
         }
 
-        function prepareReset() {
+        async function showLogs() {
             const username = document.getElementById('userSelection').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
+            const logsDisplay = document.getElementById('logsDisplay');
+            logsDisplay.textContent = 'Loading logs…';
+            try {
+                const q = query(collection(db, 'users', username, 'logs'), orderBy('ts', 'desc'));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    logsDisplay.textContent = 'No logs yet.';
+                    return;
+                }
+                let totalCups = 0;
+                const items = [];
+                snap.forEach(docSnap => {
+                    const { ts, count } = docSnap.data();
+                    totalCups += count;
+                    const when = new Date(ts).toLocaleString();
+                    items.push(`<li>${when} — ${count} cup${count === 1 ? '' : 's'}</li>`);
+                });
+                logsDisplay.innerHTML =
+                    `<h2>Log snapshot for ${username}</h2>` +
+                    `<p>${snap.size} entries, ${totalCups} cups total (all time)</p>` +
+                    `<ul style="text-align:left; max-height:300px; overflow-y:auto; display:inline-block;">` +
+                    items.join('') + `</ul>`;
+            } catch (error) {
+                console.error('Error loading logs:', error);
+                logsDisplay.textContent = 'Failed to load logs.';
+            }
+        }
 
-            // Fetch the total coffee first
-            fetch(`${url}?action=getTotalCoffee&username=${username}`, {
-                method: 'GET'
-            }).then(response => response.text())
-            .then(total => {
-                const amountOwed = (total * 0.80).toFixed(2); // Assume $0.80 per cup
+        async function prepareReset() {
+            const username = document.getElementById('userSelection').value;
+            try {
+                const snap = await getDoc(userDoc(username));
+                const total = snap.exists() ? (snap.data().cups || 0) : 0;
+                const amountOwed = (total * PRICE_PER_CUP).toFixed(2);
                 document.getElementById('totalAmountDue').textContent = amountOwed;
-                document.getElementById('resetMessage').textContent = `Please confirm you have paid $${amountOwed} to Kee before reset.`;
+                document.getElementById('resetMessage').textContent =
+                    `Please confirm you have paid $${amountOwed} to Kee before reset.`;
                 document.getElementById('resetConfirmation').classList.remove('hidden');
-                document.getElementById('userActions').classList.add('hidden'); // Optionally hide other actions
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+                document.getElementById('userActions').classList.add('hidden');
+            } catch (error) {
+                console.error('Error preparing reset:', error);
+            }
         }
 
-        function confirmReset() {
+        async function confirmReset() {
             const username = document.getElementById('userSelection').value;
-            const url = 'https://script.google.com/macros/s/AKfycbym-ODmhPDbYIfd0oSaD2FYdtZCbpNyPWctBOQmu3C-_LbJQADixgXg-So8foXMXdSR/exec';
-
-            // Make a POST request to reset the user's data
-            fetch(`${url}?action=resetUserData&username=${username}`, {
-                method: 'POST'
-            }).then(response => response.text())
-            .then(data => {
+            try {
+                // Clear the itemized log history (logs represent unpaid cups)...
+                const logsSnap = await getDocs(collection(db, 'users', username, 'logs'));
+                await Promise.all(logsSnap.docs.map(d => deleteDoc(d.ref)));
+                // ...and zero the balance.
+                await updateDoc(userDoc(username), { cups: 0 });
+                currentCups = 0;
                 alert('Data reset successfully.');
-                document.getElementById('resetConfirmation').classList.add('hidden'); // Hide confirmation UI
-                document.getElementById('userActions').classList.remove('hidden'); // Show other actions
-            })
-            .catch(error => {
-                console.error('Error:', error);
+                document.getElementById('resetConfirmation').classList.add('hidden');
+                document.getElementById('userActions').classList.remove('hidden');
+                document.getElementById('totalDisplay').textContent = '';
+                document.getElementById('logsDisplay').textContent = '';
+            } catch (error) {
+                console.error('Error resetting data:', error);
                 alert('Failed to reset data.');
-            });
+            }
         }
 
-
-
+        // Expose handlers so the existing inline onclick="" attributes keep working.
+        Object.assign(window, {
+            navigate, confirmSelection, createUser, addCoffee,
+            checkTotal, showLogs, promptPay, prepareReset, confirmReset
+        });
     </script>
 </body>
 </html>
