@@ -125,6 +125,7 @@
         <button onclick="checkTotal()">Check Total &#128176;</button>
         <button onclick="showLogs()">My Logs &#128220;</button>
         <button class="reset-button" onclick="prepareReset()">Reset 🗑️</button> <!-- Reset button -->
+        <button class="create-user-button" onclick="switchUser()">Not you? Switch user</button>
     </div>
 
     <!-- Display Total -->
@@ -172,6 +173,10 @@
         let currentCups = 0;
         // Remember the most recent auto-logged cup so it can be undone.
         let lastLog = null;
+        // When a shared-tag tap happens before a user is remembered, log once
+        // as soon as they pick their name.
+        let pendingTapLog = false;
+        const REMEMBER_KEY = 'arlCoffeeUser';
 
         const esc = s => String(s).replace(/[&<>"]/g,
             c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -196,31 +201,85 @@
             handleDeepLink();
         });
 
-        // NFC / shared-link support: a tag encodes e.g.
-        //   .../arlcoffeelog/?user=alice&auto=1
-        // ?user=X  -> jump straight to that person's screen.
-        // &auto=1  -> also log one cup immediately (with an Undo).
+        // True only if `name` matches an option in the user dropdown.
+        function isKnownUser(name) {
+            if (!name) return false;
+            const sel = document.getElementById('userSelection');
+            const prev = sel.value;
+            sel.value = name;
+            const ok = sel.value === name;
+            if (!ok) sel.value = prev;
+            return ok;
+        }
+
+        function getRemembered() {
+            let name = null;
+            try { name = localStorage.getItem(REMEMBER_KEY); } catch (e) {}
+            if (name && !isKnownUser(name)) {   // renamed / deleted -> forget
+                try { localStorage.removeItem(REMEMBER_KEY); } catch (e) {}
+                name = null;
+            }
+            return name;
+        }
+
+        // Deep-link / NFC entry. A shared machine tag encodes  .../arlcoffeelog/?tap=1
+        //   ?tap=1  -> log a cup for the remembered user (or ask once, then remember).
+        //   ?user=X[&auto=1] -> legacy per-person link (still supported).
+        //   plain open with a remembered user -> jump to their screen (no logging).
         async function handleDeepLink() {
             const params = new URLSearchParams(location.search);
-            const user = params.get('user');
-            if (!user) return;
+            const explicitUser = params.get('user');
+            const tap = params.get('tap') === '1';
+            const remembered = getRemembered();
 
-            const sel = document.getElementById('userSelection');
-            sel.value = user;
-            if (sel.value !== user) {  // not a known user
-                document.getElementById('totalDisplay').textContent =
-                    `Unknown user “${user}”. Please pick your name from the list.`;
+            // 1) Legacy per-person link.
+            if (explicitUser) {
+                if (!isKnownUser(explicitUser)) {
+                    document.getElementById('totalDisplay').textContent =
+                        `Unknown user “${esc(explicitUser)}”. Please pick your name from the list.`;
+                    return;
+                }
+                document.getElementById('userSelection').value = explicitUser;
+                await confirmSelection();
+                if (params.get('auto') === '1' || params.get('log') === '1') {
+                    const n = parseInt(params.get('cups'), 10) || 1;
+                    history.replaceState({}, '', location.pathname + '?user=' + encodeURIComponent(explicitUser));
+                    await autoLog(explicitUser, n);
+                }
                 return;
             }
 
-            await confirmSelection();
-
-            if (params.get('auto') === '1' || params.get('log') === '1') {
-                const n = parseInt(params.get('cups'), 10) || 1;
-                // Drop the auto flag first so a refresh/back won't re-log.
-                history.replaceState({}, '', location.pathname + '?user=' + encodeURIComponent(user));
-                await autoLog(user, n);
+            // 2) Shared machine tag.
+            if (tap) {
+                history.replaceState({}, '', location.pathname);  // strip tap so refresh won't re-log
+                if (remembered) {
+                    document.getElementById('userSelection').value = remembered;
+                    await confirmSelection();
+                    await autoLog(remembered, 1);
+                } else {
+                    pendingTapLog = true;   // log once as soon as they pick a name
+                    document.getElementById('totalDisplay').textContent =
+                        'Pick your name below — we’ll remember you on this phone.';
+                }
+                return;
             }
+
+            // 3) Plain open, but this phone remembers someone -> jump to their screen (no log).
+            if (remembered) {
+                document.getElementById('userSelection').value = remembered;
+                await confirmSelection();
+            }
+            // 4) Otherwise: the normal picker (default markup) is already shown.
+        }
+
+        function switchUser() {
+            try { localStorage.removeItem(REMEMBER_KEY); } catch (e) {}
+            lastLog = null;
+            pendingTapLog = false;
+            document.getElementById('userSelection').value = '';
+            document.getElementById('totalDisplay').textContent = '';
+            document.getElementById('logsDisplay').textContent = '';
+            navigate('initialUserSelection');
         }
 
         async function autoLog(username, n) {
@@ -288,6 +347,8 @@
                 alert("Please select a user.");
                 return;
             }
+            // Remember this person on this device for next time.
+            try { localStorage.setItem(REMEMBER_KEY, username); } catch (e) {}
             document.getElementById('initialUserSelection').classList.add('hidden');
             document.getElementById('userActions').classList.remove('hidden');
             document.getElementById('logsDisplay').textContent = '';
@@ -299,6 +360,11 @@
             } catch (error) {
                 console.error('Error loading user total:', error);
                 currentCups = 0;
+            }
+            // If this selection followed a shared-tag tap, log the cup now.
+            if (pendingTapLog) {
+                pendingTapLog = false;
+                await autoLog(username, 1);
             }
         }
 
@@ -433,7 +499,7 @@
         Object.assign(window, {
             navigate, confirmSelection, createUser, addCoffee,
             checkTotal, showLogs, promptPay, prepareReset, confirmReset,
-            undoLastLog
+            undoLastLog, switchUser
         });
     </script>
 </body>
