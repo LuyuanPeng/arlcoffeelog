@@ -170,6 +170,11 @@
         // Cache the selected user's total locally so "Add Cup" updates instantly
         // (one atomic write per cup, no read round-trip).
         let currentCups = 0;
+        // Remember the most recent auto-logged cup so it can be undone.
+        let lastLog = null;
+
+        const esc = s => String(s).replace(/[&<>"]/g,
+            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
         function renderTotal(cups) {
             const amountOwed = (cups * PRICE_PER_CUP).toFixed(2);
@@ -186,7 +191,71 @@
             return doc(db, 'users', username);
         }
 
-        document.addEventListener('DOMContentLoaded', fetchUsers);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchUsers();
+            handleDeepLink();
+        });
+
+        // NFC / shared-link support: a tag encodes e.g.
+        //   .../arlcoffeelog/?user=alice&auto=1
+        // ?user=X  -> jump straight to that person's screen.
+        // &auto=1  -> also log one cup immediately (with an Undo).
+        async function handleDeepLink() {
+            const params = new URLSearchParams(location.search);
+            const user = params.get('user');
+            if (!user) return;
+
+            const sel = document.getElementById('userSelection');
+            sel.value = user;
+            if (sel.value !== user) {  // not a known user
+                document.getElementById('totalDisplay').textContent =
+                    `Unknown user “${user}”. Please pick your name from the list.`;
+                return;
+            }
+
+            await confirmSelection();
+
+            if (params.get('auto') === '1' || params.get('log') === '1') {
+                const n = parseInt(params.get('cups'), 10) || 1;
+                // Drop the auto flag first so a refresh/back won't re-log.
+                history.replaceState({}, '', location.pathname + '?user=' + encodeURIComponent(user));
+                await autoLog(user, n);
+            }
+        }
+
+        async function autoLog(username, n) {
+            try {
+                const ref = await addDoc(collection(db, 'users', username, 'logs'),
+                                         { ts: Date.now(), count: n });
+                await updateDoc(userDoc(username), { cups: increment(n) });
+                currentCups += n;
+                lastLog = { ref, count: n, username };
+                const amountOwed = (currentCups * PRICE_PER_CUP).toFixed(2);
+                document.getElementById('totalDisplay').innerHTML =
+                    `✅ Logged ${n} cup${n === 1 ? '' : 's'} for <strong>${esc(username)}</strong>. ` +
+                    `You owe $${amountOwed}. ` +
+                    `<button class="payment-button" onclick="undoLastLog()">Undo</button>`;
+            } catch (error) {
+                console.error('Auto-log failed:', error);
+                document.getElementById('totalDisplay').textContent =
+                    'Could not log your cup — please use the Add Cup button.';
+            }
+        }
+
+        async function undoLastLog() {
+            if (!lastLog) return;
+            const { ref, count, username } = lastLog;
+            lastLog = null;
+            try {
+                await deleteDoc(ref);
+                await updateDoc(userDoc(username), { cups: increment(-count) });
+                currentCups = Math.max(0, currentCups - count);
+                renderTotal(currentCups);
+            } catch (error) {
+                console.error('Undo failed:', error);
+                document.getElementById('totalDisplay').textContent = 'Could not undo — please check your total.';
+            }
+        }
 
         // Function to navigate between pages
         function navigate(page) {
@@ -363,7 +432,8 @@
         // Expose handlers so the existing inline onclick="" attributes keep working.
         Object.assign(window, {
             navigate, confirmSelection, createUser, addCoffee,
-            checkTotal, showLogs, promptPay, prepareReset, confirmReset
+            checkTotal, showLogs, promptPay, prepareReset, confirmReset,
+            undoLastLog
         });
     </script>
 </body>
