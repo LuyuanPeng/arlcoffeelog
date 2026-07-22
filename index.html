@@ -137,7 +137,7 @@
 
     <!-- Reset Confirmation (Initially Hidden) -->
     <div id="resetConfirmation" class="hidden">
-        <p id="resetMessage">Please confirm you have paid $<span id="totalAmountDue">0</span> and informed Kee before reset.</p>
+        <p id="resetMessage">Please confirm you have paid $<span id="totalAmountDue">0</span> and informed Zahra before reset.</p>
         <button class="confirm-button" onclick="confirmReset()">Confirm ✅</button>
     </div>
 
@@ -426,7 +426,7 @@
         }
 
         function promptPay() {
-            alert(`PayLah!/PayNow to 81982143. Inform Kee of your payment.`);
+            alert(`PayLah!/PayNow to 84011589. Inform Zahra of your payment.`);
         }
 
         async function showLogs() {
@@ -467,7 +467,7 @@
                 const amountOwed = (total * PRICE_PER_CUP).toFixed(2);
                 document.getElementById('totalAmountDue').textContent = amountOwed;
                 document.getElementById('resetMessage').textContent =
-                    `Please confirm you have paid $${amountOwed} to Kee before reset.`;
+                    `Please confirm you have paid $${amountOwed} to Zahra before reset.`;
                 document.getElementById('resetConfirmation').classList.remove('hidden');
                 document.getElementById('userActions').classList.add('hidden');
             } catch (error) {
